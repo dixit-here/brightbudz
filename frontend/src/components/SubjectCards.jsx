@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './SubjectCards.css';
+import API_BASE from '../api';
+
+const FALLBACK_SUBJECTS = [
+  { subjectId: 'maths', title: 'Maths', iconName: 'Calculator', color: '#3b82f6', description: 'Master numbers, equations, and logic with our comprehensive Mathematics practice modules.' },
+  { subjectId: 'physics', title: 'Physics', iconName: 'Atom', color: '#8b5cf6', description: 'Explore the fundamental principles of the universe, from mechanics to quantum theory.' },
+  { subjectId: 'chemistry', title: 'Chemistry', iconName: 'FlaskConical', color: '#f59e0b', description: 'Delve into the composition, structure, and properties of matter.' },
+  { subjectId: 'social-science', title: 'Social Science', iconName: 'Globe', color: '#10b981', description: 'Understand human society, history, geography, and political structures.' },
+  { subjectId: 'biology', title: 'Biology', iconName: 'Dna', color: '#f43f5e', description: 'Dive into the science of life, from microscopic cells to complex ecosystems.' },
+];
 
 const SubjectCards = () => {
   const [subjects, setSubjects] = useState([]);
@@ -10,19 +19,27 @@ const SubjectCards = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/subjects')
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+    fetch(`${API_BASE}/api/subjects`, { signal: controller.signal })
       .then(res => res.json())
       .then(data => {
-        setSubjects(data);
-        if (data.length > 0) {
-          setActiveId(data[0].subjectId);
-        }
+        clearTimeout(timeoutId);
+        const list = Array.isArray(data) && data.length > 0 ? data : FALLBACK_SUBJECTS;
+        setSubjects(list);
+        setActiveId(list[0].subjectId);
         setLoading(false);
       })
       .catch(error => {
-        console.error('Error fetching subjects:', error);
+        clearTimeout(timeoutId);
+        console.warn('Could not reach subjects API, using fallback subjects:', error.message);
+        setSubjects(FALLBACK_SUBJECTS);
+        setActiveId(FALLBACK_SUBJECTS[0].subjectId);
         setLoading(false);
       });
+
+    return () => { clearTimeout(timeoutId); controller.abort(); };
   }, []);
 
   if (loading) {

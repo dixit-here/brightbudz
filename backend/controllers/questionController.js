@@ -1,5 +1,52 @@
 const Question = require("../models/Question");
 
+// Admin: list questions with filters
+exports.getAdminQuestions = async (req, res) => {
+  try {
+    const { grade, subject, chapter } = req.query;
+    const filter = {};
+    if (grade)   filter.grade = grade;
+    if (subject) filter.subject = new RegExp(`^${subject.replace(/s$/i, '')}s?$`, 'i');
+    if (chapter) filter.chapter = chapter;
+    const questions = await Question.find(filter).sort({ createdAt: -1 }).limit(200);
+    res.json(questions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Admin: update question
+exports.updateQuestion = async (req, res) => {
+  try {
+    const { grade, subject, chapter, difficulty, question, options, correctAnswerIndex, explanation } = req.body;
+    const updated = await Question.findByIdAndUpdate(
+      req.params.id,
+      {
+        grade, subject, chapter,
+        difficulty: difficulty || 'medium',
+        content: { en: { question, options, explanation } },
+        correctAnswerIndex: Number(correctAnswerIndex)
+      },
+      { new: true, runValidators: true }
+    );
+    if (!updated) return res.status(404).json({ message: 'Question not found' });
+    res.json({ message: 'Question updated ✅', question: updated });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Admin: delete question
+exports.deleteQuestion = async (req, res) => {
+  try {
+    const deleted = await Question.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Question not found' });
+    res.json({ message: 'Question deleted ✅' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // Add Question
 exports.addQuestion = async (req, res) => {
   try {

@@ -201,7 +201,8 @@ body.dark .menu-divider {
   flex: 1;
   display: flex;
   justify-content: center;
-  padding: 20px;
+  align-items: flex-start;
+  padding: 40px 20px;
 }
 
 /* Card */
@@ -304,13 +305,7 @@ body.dark .ad-banner {
   }
 }
 
-.main-content {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 40px 20px;
-}
+
 
 @media (max-width: 768px) {
   .card {

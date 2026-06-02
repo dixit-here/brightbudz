@@ -51,9 +51,9 @@ function Layout({ children }) {
         <div className="header-top">
           <h1 onClick={() => go("/")} style={{ cursor: "pointer" }}>BrightBudz</h1>
 
-          {/* User badge – always visible when logged in */}
+          {/* User badge – always visible when logged in; Login pill for guests */}
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            {isLoggedIn && (
+            {isLoggedIn ? (
               <span className="user-badge">
                 👤 {localStorage.getItem("userName")}
                 <span className="role-tag" style={{
@@ -62,6 +62,28 @@ function Layout({ children }) {
                   {localStorage.getItem("role")}
                 </span>
               </span>
+            ) : (
+              <button
+                onClick={() => navigate("/login")}
+                style={{
+                  padding: "7px 18px",
+                  borderRadius: "20px",
+                  border: "1.5px solid rgba(255,255,255,0.6)",
+                  background: "rgba(255,255,255,0.15)",
+                  color: "white",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  backdropFilter: "blur(8px)",
+                  transition: "background 0.2s, border-color 0.2s",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.28)"; e.currentTarget.style.borderColor = "white"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.6)"; }}
+                aria-label="Login"
+              >
+                🔑 Login
+              </button>
             )}
 
             {/* Hamburger button */}

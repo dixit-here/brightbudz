@@ -18,16 +18,27 @@ connectDB();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
+  "https://brightbudz.vercel.app",      // Production Vercel domain
   process.env.FRONTEND_URL,            // https://brightbudz.com
   process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.replace("https://", "https://www.")
     : null,                            // https://www.brightbudz.com
-].filter(Boolean);
+];
+
+// Add any additional origins from environment variable ALLOWED_ORIGINS (comma-separated list)
+if (process.env.ALLOWED_ORIGINS) {
+  const extraOrigins = process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim());
+  allowedOrigins.push(...extraOrigins);
+}
+
+const finalAllowedOrigins = allowedOrigins.filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow server-to-server requests (no origin) and listed origins
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow server-to-server requests (no origin), listed origins, or Vercel preview domains matching brightbudz
+    const isAllowedVercel = origin && /^https:\/\/brightbudz.*\.vercel\.app$/.test(origin);
+
+    if (!origin || finalAllowedOrigins.includes(origin) || isAllowedVercel) {
       callback(null, true);
     } else {
       callback(new Error(`CORS: origin ${origin} not allowed`));

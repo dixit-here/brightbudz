@@ -9,7 +9,6 @@ function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("student"); // default
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -24,7 +23,7 @@ function Signup() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ name, email, password, role })
+        body: JSON.stringify({ name, email, password })
       });
 
       const data = await res.json();
@@ -70,15 +69,6 @@ function Signup() {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-
-        <select
-          className="auth-select"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-        >
-          <option value="student">Student</option>
-          <option value="admin">Admin</option>
-        </select>
 
         {error && <p className="error">{error}</p>}
         {success && <p className="success">{success}</p>}

@@ -65,7 +65,7 @@ async function seed() {
     console.log("Cleared existing questions for Grade 9 / Math / Polynomials");
 
     await Question.insertMany(questions);
-    console.log("✅ 10 questions seeded successfully!");
+    console.log("✅ Questions seeded successfully!");
 
     await mongoose.disconnect();
     process.exit(0);

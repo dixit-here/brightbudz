@@ -24,6 +24,27 @@ const parseParams = (paramStr) => {
   return params;
 };
 
+const renderFormattedText = (text) => {
+  if (!text) return "";
+  const regex = /\^(\(([^)]+)\)|([a-zA-Z0-9+-]+))/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const matchIndex = match.index;
+    const exponent = match[2] || match[3];
+    if (matchIndex > lastIndex) {
+      parts.push(text.substring(lastIndex, matchIndex));
+    }
+    parts.push(<sup key={matchIndex}>{exponent}</sup>);
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+  return parts;
+};
+
 function renderDiagramSvg(shape, params) {
   const containerStyle = {
     maxWidth: "100%",
@@ -118,8 +139,67 @@ function renderDiagramSvg(shape, params) {
       );
     }
     case "triangle": {
-      const base = params.base || "b";
-      const height = params.height || "h";
+      const a = params.a;
+      const b = params.b;
+      const c = params.c || params.base;
+      const h = params.height || params.h;
+      const angA = params.anga || params.angA || params.a_angle;
+      const angB = params.angb || params.angB || params.b_angle;
+      const angC = params.angc || params.angC || params.c_angle;
+
+      const parseAngle = (val) => {
+        if (!val) return null;
+        const num = parseInt(val.replace(/[^\d]/g, ""));
+        return isNaN(num) ? null : num;
+      };
+
+      const aNum = parseAngle(angA);
+      const bNum = parseAngle(angB);
+      const cNum = parseAngle(angC);
+
+      let ptA = { x: 110, y: 65 };
+      let ptB = { x: 40, y: 155 };
+      let ptC = { x: 180, y: 155 };
+      let showRightAngle = null;
+
+      if (bNum === 90) {
+        ptA = { x: 50, y: 65 };
+        ptB = { x: 50, y: 155 };
+        ptC = { x: 170, y: 155 };
+        showRightAngle = 'B';
+      } else if (cNum === 90) {
+        ptA = { x: 170, y: 65 };
+        ptB = { x: 50, y: 155 };
+        ptC = { x: 170, y: 155 };
+        showRightAngle = 'C';
+      } else if (aNum === 90) {
+        ptA = { x: 110, y: 95 };
+        ptB = { x: 50, y: 155 };
+        ptC = { x: 170, y: 155 };
+        showRightAngle = 'A';
+      } else if (bNum > 90) {
+        ptA = { x: 45, y: 65 };
+        ptB = { x: 95, y: 155 };
+        ptC = { x: 175, y: 155 };
+      } else if (cNum > 90) {
+        ptA = { x: 175, y: 65 };
+        ptB = { x: 45, y: 155 };
+        ptC = { x: 125, y: 155 };
+      } else if (h) {
+        ptA = { x: 110, y: 65 };
+        ptB = { x: 40, y: 155 };
+        ptC = { x: 180, y: 155 };
+        showRightAngle = 'height';
+      }
+
+      const labelB = { x: ptB.x + (showRightAngle === 'B' ? 22 : 12), y: ptB.y - (showRightAngle === 'B' ? 12 : 6) };
+      const labelC = { x: ptC.x - (showRightAngle === 'C' ? 22 : 12), y: ptC.y - (showRightAngle === 'C' ? 12 : 6) };
+      const labelA = { x: ptA.x, y: ptA.y + (showRightAngle === 'A' ? 26 : 22) };
+
+      const sideLabelC = { x: (ptB.x + ptC.x) / 2, y: ptB.y + 18 };
+      const sideLabelB = { x: (ptA.x + ptB.x) / 2 - 15, y: (ptA.y + ptB.y) / 2 };
+      const sideLabelA = { x: (ptA.x + ptC.x) / 2 + 15, y: (ptA.y + ptC.y) / 2 };
+
       return (
         <svg width="220" height="220" viewBox="0 0 220 220" style={containerStyle}>
           <defs>
@@ -129,11 +209,37 @@ function renderDiagramSvg(shape, params) {
             </linearGradient>
             {shadowFilter}
           </defs>
-          <polygon points="40,155 180,155 110,65" stroke="#dc2626" strokeWidth="3" fill="url(#triGradPreview)" filter="url(#svg-preview-shadow)" />
-          <line x1="110" y1="65" x2="110" y2="155" stroke="#b91c1c" strokeWidth="1.5" strokeDasharray="3 3" />
-          <rect x="110" y="145" width="10" height="10" fill="none" stroke="#b91c1c" strokeWidth="1.2" />
-          <text x="110" y="176" fontSize="13" fill="#b91c1c" fontWeight="700" fontFamily="system-ui" textAnchor="middle">b = {base}</text>
-          <text x="120" y="115" fontSize="13" fill="#b91c1c" fontWeight="700" fontFamily="system-ui" textAnchor="start">h = {height}</text>
+          <polygon points={`${ptB.x},${ptB.y} ${ptC.x},${ptC.y} ${ptA.x},${ptA.y}`} stroke="#dc2626" strokeWidth="3" fill="url(#triGradPreview)" filter="url(#svg-preview-shadow)" />
+          
+          {showRightAngle === 'height' && (
+            <>
+              <line x1="110" y1="65" x2="110" y2="155" stroke="#b91c1c" strokeWidth="1.5" strokeDasharray="3 3" />
+              <rect x="110" y="145" width="10" height="10" fill="none" stroke="#b91c1c" strokeWidth="1.2" />
+              <text x="120" y="115" fontSize="12" fill="#b91c1c" fontWeight="700" fontFamily="system-ui" textAnchor="start">h = {h}</text>
+            </>
+          )}
+
+          {showRightAngle === 'B' && (
+            <path d={`M ${ptB.x},${ptB.y - 12} L ${ptB.x + 12},${ptB.y - 12} L ${ptB.x + 12},${ptB.y}`} fill="none" stroke="#dc2626" strokeWidth="1.5" />
+          )}
+
+          {showRightAngle === 'C' && (
+            <path d={`M ${ptC.x},${ptC.y - 12} L ${ptC.x - 12},${ptC.y - 12} L ${ptC.x - 12},${ptC.y}`} fill="none" stroke="#dc2626" strokeWidth="1.5" />
+          )}
+
+          {showRightAngle === 'A' && (
+            <path d={`M ${ptA.x - 8},${ptA.y + 8} L ${ptA.x},${ptA.y + 16} L ${ptA.x + 8},${ptA.y + 8}`} fill="none" stroke="#dc2626" strokeWidth="1.5" />
+          )}
+
+          {/* Side Labels */}
+          {c && <text x={sideLabelC.x} y={sideLabelC.y} fontSize="12" fill="#b91c1c" fontWeight="700" fontFamily="system-ui" textAnchor="middle">{c}</text>}
+          {b && <text x={sideLabelB.x} y={sideLabelB.y} fontSize="12" fill="#b91c1c" fontWeight="700" fontFamily="system-ui" textAnchor="end">{b}</text>}
+          {a && <text x={sideLabelA.x} y={sideLabelA.y} fontSize="12" fill="#b91c1c" fontWeight="700" fontFamily="system-ui" textAnchor="start">{a}</text>}
+
+          {/* Angle Labels */}
+          {angA && <text x={labelA.x} y={labelA.y} fontSize="11" fill="#7f1d1d" fontWeight="600" fontFamily="system-ui" textAnchor="middle">{angA}</text>}
+          {angB && <text x={labelB.x} y={labelB.y} fontSize="11" fill="#7f1d1d" fontWeight="600" fontFamily="system-ui" textAnchor="start">{angB}</text>}
+          {angC && <text x={labelC.x} y={labelC.y} fontSize="11" fill="#7f1d1d" fontWeight="600" fontFamily="system-ui" textAnchor="end">{angC}</text>}
         </svg>
       );
     }
@@ -471,6 +577,111 @@ function renderDiagramSvg(shape, params) {
         </svg>
       );
     }
+    case "touchingcircles": {
+      const type = params.type || "external";
+      const r1 = params.r1 || "r₁";
+      const r2 = params.r2 || "r₂";
+
+      const parseVal = (val) => {
+        if (!val) return null;
+        const match = val.toString().replace(/,/g, "").match(/^[\d\.]+/);
+        return match ? parseFloat(match[0]) : null;
+      };
+
+      const v1 = parseVal(r1);
+      const v2 = parseVal(r2);
+
+      if (type === "internal") {
+        let R1_val = 75;
+        let R2_val = 45;
+        let cx1 = 110;
+        let cx2 = 140;
+
+        if (v1 !== null && v2 !== null && v1 > 0 && v2 > 0) {
+          if (v1 >= v2) {
+            R1_val = 75;
+            R2_val = 75 * (v2 / v1);
+            cx1 = 110;
+            cx2 = 110 + R1_val - R2_val;
+          } else {
+            R2_val = 75;
+            R1_val = 75 * (v1 / v2);
+            cx2 = 110;
+            cx1 = 110 + R2_val - R1_val;
+          }
+        }
+
+        const outerIs1 = R1_val >= R2_val;
+        const outerCx = outerIs1 ? cx1 : cx2;
+        const outerR = outerIs1 ? R1_val : R2_val;
+        const innerCx = outerIs1 ? cx2 : cx1;
+        const innerR = outerIs1 ? R2_val : R1_val;
+
+        return (
+          <svg width="220" height="220" viewBox="0 0 220 220" style={containerStyle}>
+            <defs>
+              <radialGradient id="touchInt1Preview" cx="50%" cy="50%" r="50%">
+                <stop offset="70%" stopColor="#f0f9ff" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#e0f2fe" />
+              </radialGradient>
+              <radialGradient id="touchInt2Preview" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="100%" stopColor="#ecfeff" />
+              </radialGradient>
+              {shadowFilter}
+            </defs>
+            <circle cx={outerCx} cy="110" r={outerR} stroke="#0284c7" strokeWidth="2.5" fill="url(#touchInt1Preview)" filter="url(#svg-preview-shadow)" />
+            <circle cx={innerCx} cy="110" r={innerR} stroke="#0891b2" strokeWidth="2" fill="url(#touchInt2Preview)" />
+            <circle cx={cx1} cy="110" r="3.5" fill="#0369a1" />
+            <circle cx={cx2} cy="110" r="3.5" fill="#0891b2" />
+            <line x1={outerCx} y1="110" x2={outerCx + outerR} y2="110" stroke="#475569" strokeWidth="1.5" strokeDasharray="3 3" />
+            <line x1={innerCx} y1="110" x2={innerCx} y2={110 + innerR} stroke="#0891b2" strokeWidth="1.5" strokeDasharray="3 3" />
+            <text x={cx1 - 4} y="102" fontSize="10" fill="#0369a1" fontWeight="bold" fontFamily="system-ui">O₁</text>
+            <text x={cx2 - 4} y="102" fontSize="10" fill="#0891b2" fontWeight="bold" fontFamily="system-ui">O₂</text>
+            <text x={outerCx + outerR * 0.7} y="104" fontSize="10" fill="#0369a1" fontWeight="700" fontFamily="system-ui" textAnchor="middle">r₁={r1}</text>
+            <text x={innerCx + 5} y={110 + innerR * 0.6} fontSize="10" fill="#0891b2" fontWeight="700" fontFamily="system-ui" textAnchor="start">r₂={r2}</text>
+          </svg>
+        );
+      } else {
+        let R1_val = 50;
+        let R2_val = 30;
+        let cx1 = 75;
+        let cx2 = 155;
+
+        if (v1 !== null && v2 !== null && v1 > 0 && v2 > 0) {
+          const scale = 80 / (v1 + v2);
+          R1_val = v1 * scale;
+          R2_val = v2 * scale;
+          cx1 = 110 - R2_val;
+          cx2 = 110 + R1_val;
+        }
+
+        return (
+          <svg width="220" height="220" viewBox="0 0 220 220" style={containerStyle}>
+            <defs>
+              <radialGradient id="touchExt1Preview" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="100%" stopColor="#e0f2fe" />
+              </radialGradient>
+              <radialGradient id="touchExt2Preview" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="100%" stopColor="#ecfeff" />
+              </radialGradient>
+              {shadowFilter}
+            </defs>
+            <circle cx={cx1} cy="110" r={R1_val} stroke="#0284c7" strokeWidth="2.5" fill="url(#touchExt1Preview)" filter="url(#svg-preview-shadow)" />
+            <circle cx={cx2} cy="110" r={R2_val} stroke="#0891b2" strokeWidth="2.5" fill="url(#touchExt2Preview)" filter="url(#svg-preview-shadow)" />
+            <circle cx={cx1} cy="110" r="3.5" fill="#0369a1" />
+            <circle cx={cx2} cy="110" r="3.5" fill="#0891b2" />
+            <line x1={cx1} y1="110" x2={cx2} y2="110" stroke="#475569" strokeWidth="1.5" strokeDasharray="3 3" />
+            <text x={cx1} y="102" fontSize="10" fill="#0369a1" fontWeight="bold" fontFamily="system-ui" textAnchor="middle">O₁</text>
+            <text x={cx2} y="102" fontSize="10" fill="#0891b2" fontWeight="bold" fontFamily="system-ui" textAnchor="middle">O₂</text>
+            <text x={cx1 + R1_val / 2} y="122" fontSize="10" fill="#0369a1" fontWeight="700" fontFamily="system-ui" textAnchor="middle">r₁={r1}</text>
+            <text x={cx2 - R2_val / 2} y="122" fontSize="10" fill="#0891b2" fontWeight="700" fontFamily="system-ui" textAnchor="middle">r₂={r2}</text>
+          </svg>
+        );
+      }
+    }
     default:
       return null;
   }
@@ -479,13 +690,13 @@ function renderDiagramSvg(shape, params) {
 function renderQuestionText(questionText) {
   if (!questionText) return null;
 
-  const regex = /\[(Circle|Semicircle|Square|Rectangle|Triangle|ConcentricCircles|Venn|Ellipse|Polygon|PieChart|NumberLine|CoordinateGraph|Parabola|Hyperbola|Quadrilateral|Rhombus|Parallelogram|Trapezium)SVG:\s*([^\]]+)\]/gi;
+  const regex = /\[(Circle|Semicircle|Square|Rectangle|Triangle|ConcentricCircles|Venn|Ellipse|Polygon|PieChart|NumberLine|CoordinateGraph|Parabola|Hyperbola|Quadrilateral|Rhombus|Parallelogram|Trapezium|TouchingCircles)SVG:\s*([^\]]+)\]/gi;
   const matches = [...questionText.matchAll(regex)];
 
   if (matches.length === 0) {
     return (
       <p className="aq-preview-q">
-        {questionText}
+        {renderFormattedText(questionText)}
       </p>
     );
   }
@@ -502,7 +713,7 @@ function renderQuestionText(questionText) {
     if (matchIndex > lastIndex) {
       elements.push(
         <span key={`text-pre-${index}`} className="aq-preview-q">
-          {questionText.substring(lastIndex, matchIndex)}
+          {renderFormattedText(questionText.substring(lastIndex, matchIndex))}
         </span>
       );
     }
@@ -522,7 +733,7 @@ function renderQuestionText(questionText) {
   if (lastIndex < questionText.length) {
     elements.push(
       <span key="text-post" className="aq-preview-q">
-        {questionText.substring(lastIndex)}
+        {renderFormattedText(questionText.substring(lastIndex))}
       </span>
     );
   }
@@ -591,7 +802,7 @@ function QuestionPreview({ form }) {
             {form.options.map((opt, i) => (
               opt.trim() ? (
                 <button key={i} style={optionStyle(i)} onClick={() => setSelected(i)}>
-                  <span className="aq-opt-letter">{String.fromCharCode(65 + i)}.</span> {opt}
+                  <span className="aq-opt-letter">{String.fromCharCode(65 + i)}.</span> {renderFormattedText(opt)}
                 </button>
               ) : null
             ))}
@@ -601,7 +812,7 @@ function QuestionPreview({ form }) {
           {selected !== null && (
             <div className={`aq-preview-feedback ${selected === form.correctAnswerIndex ? 'correct' : 'wrong'}`}>
               {selected === form.correctAnswerIndex ? "✅ Correct!" : "❌ Incorrect"}
-              {form.explanation && <p className="aq-preview-expl">💡 {form.explanation}</p>}
+              {form.explanation && <p className="aq-preview-expl">💡 {renderFormattedText(form.explanation)}</p>}
             </div>
           )}
 
@@ -929,7 +1140,12 @@ export default function AddQuestions() {
                 {/* Question Text */}
                 <div className="aq-field">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexDirection: "column", gap: "8px", marginBottom: "8px" }}>
-                    <label className="aq-label" style={{ margin: 0 }}>Question *</label>
+                    <label className="aq-label" style={{ margin: 0 }}>
+                      Question * 
+                      <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "normal", marginLeft: "6px" }}>
+                        (Tip: Use ^ for exponents, e.g. x^2, y^(n+1))
+                      </span>
+                    </label>
                     <div className="aq-diagram-toolbar" style={{ display: "flex", gap: "6px", flexWrap: "wrap", background: "#f1f5f9", padding: "8px", borderRadius: "10px", width: "100%", boxSizing: "border-box" }}>
                       <button
                         type="button"
@@ -976,10 +1192,32 @@ export default function AddQuestions() {
                       <button
                         type="button"
                         onClick={() => {
-                          const b = prompt("Enter triangle base (e.g. 6 cm):", "6 cm");
-                          if (!b) return;
-                          const h = prompt("Enter triangle height (e.g. 4 cm):", "4 cm");
-                          if (h) setForm(f => ({ ...f, question: f.question + ` [TriangleSVG: base=${b}&height=${h}]` }));
+                          const choice = prompt("Enter '1' for Base & Height triangle, or '2' for Custom Sides & Angles triangle:", "1");
+                          if (choice === "1") {
+                            const b = prompt("Enter triangle base (e.g. 6 cm):", "6 cm");
+                            if (!b) return;
+                            const h = prompt("Enter triangle height (e.g. 4 cm):", "4 cm");
+                            if (h) setForm(f => ({ ...f, question: f.question + ` [TriangleSVG: base=${b}&height=${h}]` }));
+                          } else if (choice === "2") {
+                            const c = prompt("Enter side c (base, e.g. 7 cm):", "7 cm");
+                            const b = prompt("Enter side b (left side, e.g. 6 cm):", "6 cm");
+                            const a = prompt("Enter side a (right side, e.g. 5 cm):", "5 cm");
+                            const angA = prompt("Enter angle A (top vertex, e.g. 60°):", "60°");
+                            const angB = prompt("Enter angle B (bottom-left vertex, e.g. 40°):", "40°");
+                            const angC = prompt("Enter angle C (bottom-right vertex, e.g. 80°):", "80°");
+                            
+                            const parts = [];
+                            if (a) parts.push(`a=${a}`);
+                            if (b) parts.push(`b=${b}`);
+                            if (c) parts.push(`c=${c}`);
+                            if (angA) parts.push(`angA=${angA}`);
+                            if (angB) parts.push(`angB=${angB}`);
+                            if (angC) parts.push(`angC=${angC}`);
+                            
+                            if (parts.length > 0) {
+                              setForm(f => ({ ...f, question: f.question + ` [TriangleSVG: ${parts.join("&")}]` }));
+                            }
+                          }
                         }}
                         style={{ padding: "4px 8px", fontSize: "11px", borderRadius: "6px", border: "1px solid #fecaca", background: "#fef2f2", color: "#b91c1c", cursor: "pointer", fontWeight: "600" }}
                       >
@@ -996,6 +1234,22 @@ export default function AddQuestions() {
                         style={{ padding: "4px 8px", fontSize: "11px", borderRadius: "6px", border: "1px solid #a5f3fc", background: "#ecfeff", color: "#0891b2", cursor: "pointer", fontWeight: "600" }}
                       >
                         🎯 Concentric Circles
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const type = prompt("Enter '1' for External touching circles, or '2' for Internal touching circles:", "1");
+                          if (!type) return;
+                          const r1 = prompt("Enter radius r1 (larger circle, e.g. 5 cm):", "5 cm");
+                          if (!r1) return;
+                          const r2 = prompt("Enter radius r2 (smaller circle, e.g. 3 cm):", "3 cm");
+                          if (!r2) return;
+                          const t = type === "2" ? "internal" : "external";
+                          setForm(f => ({ ...f, question: f.question + ` [TouchingCirclesSVG: type=${t}&r1=${r1}&r2=${r2}]` }));
+                        }}
+                        style={{ padding: "4px 8px", fontSize: "11px", borderRadius: "6px", border: "1px solid #a5f3fc", background: "#f0fdf4", color: "#0d9488", cursor: "pointer", fontWeight: "600" }}
+                      >
+                        👥 Touching Circles
                       </button>
                       <button
                         type="button"

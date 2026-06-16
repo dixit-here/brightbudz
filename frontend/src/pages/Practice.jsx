@@ -5,6 +5,27 @@ import PracticeSidebar from "../components/PracticeSidebar"
 import "./Practice.css"
 import API_BASE from "../api"
 
+const renderFormattedText = (text) => {
+  if (!text) return "";
+  const regex = /\^(\(([^)]+)\)|([a-zA-Z0-9+-]+))/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const matchIndex = match.index;
+    const exponent = match[2] || match[3];
+    if (matchIndex > lastIndex) {
+      parts.push(text.substring(lastIndex, matchIndex));
+    }
+    parts.push(<sup key={matchIndex}>{exponent}</sup>);
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+  return parts;
+};
+
 function Practice() {
   const [questions, setQuestions] = useState([])
   const [answers, setAnswers] = useState({})
@@ -254,7 +275,7 @@ function Practice() {
                           <span className="feedback-icon">{answer.isCorrect ? '✅' : '❌'}</span>
                           <span className="feedback-text">{answer.isCorrect ? 'Correct!' : 'Incorrect'}</span>
                           {answer.explanation && (
-                            <span className="feedback-explanation">💡 {answer.explanation}</span>
+                            <span className="feedback-explanation">💡 {renderFormattedText(answer.explanation)}</span>
                           )}
                         </div>
                       )}

@@ -18,14 +18,15 @@ exports.getAdminQuestions = async (req, res) => {
 // Admin: update question
 exports.updateQuestion = async (req, res) => {
   try {
-    const { grade, subject, chapter, difficulty, question, options, correctAnswerIndex, explanation } = req.body;
+    const { grade, subject, chapter, difficulty, question, options, correctAnswerIndex, explanation, circuitData } = req.body;
     const updated = await Question.findByIdAndUpdate(
       req.params.id,
       {
         grade, subject, chapter,
         difficulty: difficulty || 'medium',
         content: { en: { question, options, explanation } },
-        correctAnswerIndex: Number(correctAnswerIndex)
+        correctAnswerIndex: Number(correctAnswerIndex),
+        circuitData
       },
       { new: true, runValidators: true }
     );
@@ -58,7 +59,8 @@ exports.addQuestion = async (req, res) => {
       question,
       options,
       explanation,
-      correctAnswerIndex
+      correctAnswerIndex,
+      circuitData
     } = req.body;
 
     const newQuestion = new Question({
@@ -73,7 +75,8 @@ exports.addQuestion = async (req, res) => {
           explanation
         }
       },
-      correctAnswerIndex
+      correctAnswerIndex,
+      circuitData
     });
 
     await newQuestion.save();
@@ -107,7 +110,8 @@ exports.getPracticeQuestions = async (req, res) => {
     const formattedQuestions = questions.map(q => ({
       id: q._id,
       question: q.content[language]?.question,
-      options: q.content[language]?.options
+      options: q.content[language]?.options,
+      circuitData: q.circuitData
     }));
 
     res.json(formattedQuestions);
@@ -160,6 +164,16 @@ exports.checkPracticeAnswer = async (req, res) => {
       explanation: question.content[language]?.explanation
     });
 
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getSingleQuestion = async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id);
+    if (!question) return res.status(404).json({ message: "Question not found" });
+    res.json(question);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

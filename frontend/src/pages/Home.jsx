@@ -114,7 +114,6 @@ function Home() {
 
       {/* Subject Cards */}
       <SubjectCards />
-
     </div>
   );
 }

@@ -14,7 +14,7 @@ const QuestionSchema = new mongoose.Schema(
     country: { type: String, default: "India" },
     board: { type: String, default: "CBSE" },
 
-    grade: { type: String, required: true },
+    grade: { type: String, default: "" },
     subject: { type: String, required: true },
     chapter: { type: String, required: true },
 
@@ -46,6 +46,10 @@ const QuestionSchema = new mongoose.Schema(
       required: true,
       min: 0,
       max: 3
+    },
+
+    circuitData: {
+      type: String
     }
   },
   { timestamps: true }

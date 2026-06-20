@@ -898,8 +898,8 @@ export default function AddQuestions() {
 
   // Load chapters for form (grade+subject)
   useEffect(() => {
-    if (!form.grade || !form.subject) { setChaptersList([]); setForm(f => ({ ...f, chapter: "" })); return; }
-    fetch(`${API_BASE}/api/subjects/chapters?subject=${encodeURIComponent(form.subject)}&grade=${form.grade}`)
+    if (!form.subject) { setChaptersList([]); setForm(f => ({ ...f, chapter: "" })); return; }
+    fetch(`${API_BASE}/api/subjects/chapters?subject=${encodeURIComponent(form.subject)}&grade=${form.grade || ""}`)
       .then(r => r.json())
       .then(data => { setChaptersList(Array.isArray(data) ? data : []); setForm(f => ({ ...f, chapter: "" })); })
       .catch(() => setChaptersList([]));
@@ -907,8 +907,8 @@ export default function AddQuestions() {
 
   // Load chapters for filter
   useEffect(() => {
-    if (!filterGrade || !filterSubject) { setFilterChapters([]); setFilterChapter(""); return; }
-    fetch(`${API_BASE}/api/subjects/chapters?subject=${encodeURIComponent(filterSubject)}&grade=${filterGrade}`)
+    if (!filterSubject) { setFilterChapters([]); setFilterChapter(""); return; }
+    fetch(`${API_BASE}/api/subjects/chapters?subject=${encodeURIComponent(filterSubject)}&grade=${filterGrade || ""}`)
       .then(r => r.json())
       .then(data => { setFilterChapters(Array.isArray(data) ? data : []); setFilterChapter(""); })
       .catch(() => setFilterChapters([]));
@@ -936,6 +936,10 @@ export default function AddQuestions() {
 
   // ── Edit handler ──────────────────────────────────────────────────
   const handleEdit = (q) => {
+    if (q.circuitData) {
+      navigate(`/add-question-alpha?id=${q._id}`);
+      return;
+    }
     setForm({
       grade:              q.grade,
       subject:            q.subject,
@@ -1036,6 +1040,15 @@ export default function AddQuestions() {
           >
             ➕ Add Question
           </button>
+          <button
+            className="aq-tab"
+            style={{ background: "linear-gradient(135deg, #6366f1, #a855f7)", color: "white", fontWeight: "600", border: "none", borderRadius: "8px", cursor: "pointer", transition: "transform 0.15s ease" }}
+            onClick={() => navigate("/add-question-alpha")}
+            onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
+            onMouseLeave={e => e.currentTarget.style.transform = "scale(1.00)"}
+          >
+            ✨ Add Question Alpha
+          </button>
         </div>
       </div>
 
@@ -1096,9 +1109,9 @@ export default function AddQuestions() {
                 {/* Row: Grade + Subject */}
                 <div className="aq-form-row">
                   <div className="aq-field">
-                    <label className="aq-label">Grade *</label>
-                    <select value={form.grade} onChange={e => setForm(f=>({...f, grade:e.target.value}))} required className="aq-select">
-                      <option value="">Select Grade</option>
+                    <label className="aq-label">Grade</label>
+                    <select value={form.grade} onChange={e => setForm(f=>({...f, grade:e.target.value}))} className="aq-select">
+                      <option value="">None (No Class)</option>
                       {[...Array(12)].map((_,i) => <option key={i+1} value={String(i+1)}>Grade {i+1}</option>)}
                     </select>
                   </div>

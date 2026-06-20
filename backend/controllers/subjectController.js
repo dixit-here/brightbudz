@@ -19,10 +19,11 @@ exports.getChapters = (req, res) => {
   try {
     const { subject, grade } = req.query;
 
-    if (!subject || !grade) {
-      return res.status(400).json({ error: "Both 'subject' and 'grade' query params are required" });
+    if (!subject) {
+      return res.status(400).json({ error: "Subject query param is required" });
     }
 
+    const gradeVal = grade || "";
     const raw = fs.readFileSync(chaptersFilePath, "utf-8");
     const chaptersConfig = JSON.parse(raw);
 
@@ -31,11 +32,11 @@ exports.getChapters = (req, res) => {
       (k) => k.toLowerCase() === subject.toLowerCase()
     );
 
-    if (!subjectKey || !chaptersConfig[subjectKey][grade]) {
+    if (!subjectKey || !chaptersConfig[subjectKey][gradeVal]) {
       return res.json([]);
     }
 
-    res.json(chaptersConfig[subjectKey][grade]);
+    res.json(chaptersConfig[subjectKey][gradeVal]);
   } catch (error) {
     console.error("Error reading chapters config:", error.message);
     res.status(500).json({ error: "Error fetching chapters" });

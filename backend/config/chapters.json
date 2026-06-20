@@ -48,5 +48,8 @@
     "10": ["The Rise of Nationalism in Europe", "Nationalism in India", "Resources and Development", "Agriculture", "Minerals and Energy Resources", "Power Sharing", "Federalism", "Democracy and Diversity", "Development", "Sectors of the Indian Economy", "Money and Credit", "Globalisation and the Indian Economy"],
     "11": ["Indian Constitution at Work", "Political Theory", "Indian Economic Development", "Statistics for Economics"],
     "12": ["Contemporary World Politics", "Politics in India since Independence", "Indian Economy", "Introductory Macroeconomics"]
+  },
+  "Electronics": {
+    "": ["AND Gate", "OR Gate", "NOT Gate", "NAND Gate", "NOR Gate", "XOR Gate", "XNOR Gate"]
   }
 }

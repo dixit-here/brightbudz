@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 
 function Layout({ children }) {
   const [darkMode, setDarkMode] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"))
   const navigate = useNavigate()
+  const location = useLocation()
+  const isAlphaEditor = location.pathname === "/add-question-alpha"
   const menuRef = useRef(null)
 
   useEffect(() => {
@@ -42,6 +44,33 @@ function Layout({ children }) {
   const go = (path) => {
     navigate(path)
     setMenuOpen(false)
+  }
+
+  if (isAlphaEditor) {
+    return (
+      <div className="container" style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
+        <header className="header" style={{ padding: "8px 16px" }}>
+          <div className="header-top" style={{ maxWidth: "100%" }}>
+            <h1 onClick={() => go("/")} style={{ cursor: "pointer", fontSize: "18px" }}>BrightBudz</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <span style={{ fontSize: "12px", background: "rgba(255,255,255,0.15)", padding: "4px 10px", borderRadius: "6px", fontWeight: "600", color: "white" }}>
+                ⚡ Logic Circuit Lab (Alpha)
+              </span>
+              <button
+                className="menu-item"
+                style={{ width: "auto", padding: "6px 12px", background: "rgba(255,255,255,0.2)", color: "white", borderRadius: "6px", fontSize: "12px", cursor: "pointer", border: "none", display: "inline-flex", fontWeight: "600" }}
+                onClick={() => go("/add-questions")}
+              >
+                ← Back to Manager
+              </button>
+            </div>
+          </div>
+        </header>
+        <main className="main-content" style={{ flex: 1, padding: 0, display: "flex", width: "100%", height: "calc(100vh - 52px)", overflow: "hidden", alignItems: "stretch", justifyContent: "stretch" }}>
+          {children}
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -122,9 +151,14 @@ function Layout({ children }) {
                 )}
 
                 {isLoggedIn && localStorage.getItem("role") === "admin" && (
-                  <button className="menu-item" onClick={() => go("/add-questions")}>
-                    ➕ Add Questions
-                  </button>
+                  <>
+                    <button className="menu-item" onClick={() => go("/add-questions")}>
+                      ➕ Add Questions
+                    </button>
+                    <button className="menu-item" onClick={() => go("/add-question-alpha")} style={{ color: "#a855f7", fontWeight: "600" }}>
+                      ✨ Add Question Alpha
+                    </button>
+                  </>
                 )}
 
                 <div className="menu-divider"></div>

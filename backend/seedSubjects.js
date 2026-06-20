@@ -37,6 +37,13 @@ const subjectData = [
     iconName: 'Dna',
     color: '#f43f5e',
     description: 'Dive into the science of life, from microscopic cells to complex ecosystems.'
+  },
+  {
+    subjectId: 'electronics',
+    title: 'Electronics',
+    iconName: 'Cpu',
+    color: '#10b981',
+    description: 'Design and simulate digital logic circuits interactively.'
   }
 ];
 

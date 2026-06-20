@@ -1,3 +1,6 @@
+import { useState, useEffect, useRef } from "react";
+import { Play, Pause } from "lucide-react";
+
 const parseParams = (paramStr) => {
   const params = {};
   if (!paramStr) return params;
@@ -723,6 +726,578 @@ function renderQuestionText(questionText) {
   return <div style={{ marginBottom: "15px" }}>{elements}</div>;
 }
 
+const COMPONENT_DIMENSIONS = {
+  SWITCH: { w: 80, h: 40 },
+  CLOCK: { w: 80, h: 40 },
+  CONST0: { w: 70, h: 36 },
+  CONST1: { w: 70, h: 36 },
+  AND: { w: 90, h: 60 },
+  OR: { w: 90, h: 60 },
+  NOT: { w: 70, h: 50 },
+  XOR: { w: 90, h: 60 },
+  XNOR: { w: 90, h: 60 },
+  NAND: { w: 90, h: 60 },
+  NOR: { w: 90, h: 60 },
+  LED: { w: 60, h: 60 },
+  BULB: { w: 60, h: 70 },
+  SEVENSEG: { w: 80, h: 100 },
+  SR_FF: { w: 100, h: 100 },
+  JK_FF: { w: 100, h: 100 },
+  D_FF: { w: 100, h: 100 },
+  HALF_ADDER: { w: 90, h: 80 },
+  FULL_ADDER: { w: 100, h: 100 },
+  COMPARATOR: { w: 90, h: 90 },
+  ALU: { w: 120, h: 120 },
+  MUX: { w: 90, h: 100 },
+  DEC: { w: 90, h: 100 }
+};
+
+const getNodeSize = (node) => {
+  const config = COMPONENT_DIMENSIONS[node.type] || { w: 80, h: 60 };
+  const w = node.width || config.w;
+  let h = node.height || config.h;
+  if (["AND", "OR", "NAND", "NOR", "XOR", "XNOR"].includes(node.type)) {
+    const inputs = node.inputsCount || 2;
+    if (inputs > 3) {
+      h = Math.max(60, inputs * 18);
+    }
+  }
+  return { w, h };
+};
+
+const getPortCoords = (node, portName, isInput) => {
+  const { w, h } = getNodeSize(node);
+  let rx = w / 2;
+  let ry = h / 2;
+
+  if (isInput) {
+    if (node.type === "NOT" || node.type === "LED" || node.type === "BULB") {
+      rx = 0; ry = h / 2;
+    } else if (node.type === "SEVENSEG") {
+      const ports = { IN_A: 15, IN_B: 35, IN_C: 55, IN_D: 75 };
+      rx = 0; ry = ports[portName] || h / 2;
+    } else if (node.type === "HALF_ADDER" || node.type === "COMPARATOR") {
+      const ports = { A: h / 3, B: (h / 3) * 2 };
+      rx = 0; ry = ports[portName] || h / 2;
+    } else if (node.type === "FULL_ADDER") {
+      const ports = { A: h / 4, B: (h / 4) * 2, CIN: (h / 4) * 3 };
+      rx = 0; ry = ports[portName] || h / 2;
+    } else if (node.type === "D_FF") {
+      const ports = { D: 30, CLK: 70 };
+      rx = 0; ry = ports[portName] || h / 2;
+    } else if (node.type === "JK_FF" || node.type === "SR_FF") {
+      const ports = { J: 25, S: 25, CLK: 50, K: 75, R: 75 };
+      rx = 0; ry = ports[portName] || h / 2;
+    } else if (node.type === "ALU") {
+      const ports = { A0: 20, A1: 40, B0: 60, B1: 80, OP: 100 };
+      rx = 0; ry = ports[portName] || h / 2;
+    } else if (node.type === "MUX") {
+      const ports = { D0: 25, D1: 50, SEL: 75 };
+      rx = 0; ry = ports[portName] || h / 2;
+    } else if (node.type === "DEC") {
+      const ports = { A: 35, B: 65 };
+      rx = 0; ry = ports[portName] || h / 2;
+    } else {
+      const count = node.inputsCount || 2;
+      const pinIdx = Number(portName.replace("IN_", ""));
+      if (!isNaN(pinIdx)) ry = (pinIdx + 1) * (h / (count + 1));
+      else ry = h / 2;
+      rx = 0;
+    }
+  } else {
+    if (node.type === "SR_FF" || node.type === "JK_FF" || node.type === "D_FF") {
+      const ports = { Q: 25, QB: 75 };
+      rx = w; ry = ports[portName] || h / 2;
+    } else if (node.type === "HALF_ADDER" || node.type === "FULL_ADDER") {
+      const ports = { SUM: h / 3, CARRY: (h / 3) * 2, COUT: (h / 3) * 2 };
+      rx = w; ry = ports[portName] || h / 2;
+    } else if (node.type === "COMPARATOR") {
+      const ports = { GT: h / 4, EQ: h / 2, LT: (h / 4) * 3 };
+      rx = w; ry = ports[portName] || h / 2;
+    } else if (node.type === "ALU") {
+      const ports = { Y0: 30, Y1: 60, Y2: 90 };
+      rx = w; ry = ports[portName] || h / 2;
+    } else if (node.type === "DEC") {
+      const ports = { Y0: 20, Y1: 40, Y2: 60, Y3: 80 };
+      rx = w; ry = ports[portName] || h / 2;
+    } else {
+      rx = w; ry = h / 2;
+    }
+  }
+
+  // Rotation
+  let fx = node.x + rx;
+  let fy = node.y + ry;
+  if (node.rotation === 90) {
+    const dx = rx - w / 2; const dy = ry - h / 2;
+    fx = node.x + w / 2 - dy; fy = node.y + h / 2 + dx;
+  } else if (node.rotation === 180) {
+    fx = node.x + (w - rx); fy = node.y + (h - ry);
+  } else if (node.rotation === 270) {
+    const dx = rx - w / 2; const dy = ry - h / 2;
+    fx = node.x + w / 2 + dy; fy = node.y + h / 2 - dx;
+  }
+  return { x: fx, y: fy };
+};
+
+const solveLogic = (currentNodes, currentWires) => {
+  let solved = currentNodes.map(n => ({ ...n, inputValues: {}, prevClockVal: n.inputValues?.CLK }));
+  solved.forEach(node => { node.inputValues = {}; });
+
+  for (let cycle = 0; cycle < 6; cycle++) {
+    currentWires.forEach(wire => {
+      const src = solved.find(n => n.id === wire.fromNode);
+      const tgt = solved.find(n => n.id === wire.toNode);
+      if (src && tgt) {
+        let val = 0;
+        if (src.type.includes("FF") || src.type === "HALF_ADDER" || src.type === "FULL_ADDER" || src.type === "COMPARATOR" || src.type === "ALU" || src.type === "DEC") {
+          val = src.outputs?.[wire.fromPort] || 0;
+        } else {
+          val = src.state || 0;
+        }
+        tgt.inputValues[wire.toPort] = val;
+      }
+    });
+
+    solved = solved.map(node => {
+      const getIn = (port, fallback = 0) => (node.inputValues[port] !== undefined ? node.inputValues[port] : fallback);
+
+      switch (node.type) {
+        case "SWITCH":
+        case "CLOCK":
+        case "CONST0":
+        case "CONST1":
+          break;
+        case "NOT":
+          node.state = getIn("IN") === 1 ? 0 : 1;
+          break;
+        case "AND": {
+          const cnt = node.inputsCount || 2;
+          const ins = []; for (let i=0; i<cnt; i++) ins.push(getIn(`IN_${i}`));
+          node.state = ins.every(v => v === 1) ? 1 : 0;
+          break;
+        }
+        case "OR": {
+          const cnt = node.inputsCount || 2;
+          const ins = []; for (let i=0; i<cnt; i++) ins.push(getIn(`IN_${i}`));
+          node.state = ins.some(v => v === 1) ? 1 : 0;
+          break;
+        }
+        case "NAND": {
+          const cnt = node.inputsCount || 2;
+          const ins = []; for (let i=0; i<cnt; i++) ins.push(getIn(`IN_${i}`));
+          node.state = ins.every(v => v === 1) ? 0 : 1;
+          break;
+        }
+        case "NOR": {
+          const cnt = node.inputsCount || 2;
+          const ins = []; for (let i=0; i<cnt; i++) ins.push(getIn(`IN_${i}`));
+          node.state = ins.some(v => v === 1) ? 0 : 1;
+          break;
+        }
+        case "XOR": {
+          const cnt = node.inputsCount || 2;
+          const ins = []; for (let i=0; i<cnt; i++) ins.push(getIn(`IN_${i}`));
+          node.state = ins.filter(v => v === 1).length % 2 === 1 ? 1 : 0;
+          break;
+        }
+        case "XNOR": {
+          const cnt = node.inputsCount || 2;
+          const ins = []; for (let i=0; i<cnt; i++) ins.push(getIn(`IN_${i}`));
+          node.state = ins.filter(v => v === 1).length % 2 === 0 ? 1 : 0;
+          break;
+        }
+        case "LED":
+        case "BULB":
+          node.state = getIn("IN");
+          break;
+        case "SEVENSEG": {
+          const decimalVal = (getIn("IN_A") * 8) + (getIn("IN_B") * 4) + (getIn("IN_C") * 2) + getIn("IN_D");
+          node.state = decimalVal;
+          break;
+        }
+        case "HALF_ADDER":
+          node.outputs = { SUM: getIn("A") ^ getIn("B"), CARRY: getIn("A") & getIn("B") };
+          break;
+        case "FULL_ADDER": {
+          const sum = getIn("A") ^ getIn("B") ^ getIn("CIN");
+          const cout = (getIn("A") & getIn("B")) | (getIn("B") & getIn("CIN")) | (getIn("A") & getIn("CIN"));
+          node.outputs = { SUM: sum, COUT: cout };
+          break;
+        }
+        case "COMPARATOR": {
+          const a = getIn("A"); const b = getIn("B");
+          node.outputs = { LT: a < b ? 1 : 0, EQ: a === b ? 1 : 0, GT: a > b ? 1 : 0 };
+          break;
+        }
+        case "D_FF": {
+          const prev = node.outputs?.Q || 0;
+          let Q = prev;
+          if (node.prevClockVal === 0 && getIn("CLK") === 1) Q = getIn("D");
+          node.outputs = { Q, QB: Q === 1 ? 0 : 1 };
+          break;
+        }
+        case "JK_FF": {
+          const prev = node.outputs?.Q || 0;
+          let Q = prev;
+          if (node.prevClockVal === 0 && getIn("CLK") === 1) {
+            const j = getIn("J"), k = getIn("K");
+            if (j === 0 && k === 1) Q = 0;
+            else if (j === 1 && k === 0) Q = 1;
+            else if (j === 1 && k === 1) Q = prev === 1 ? 0 : 1;
+          }
+          node.outputs = { Q, QB: Q === 1 ? 0 : 1 };
+          break;
+        }
+        case "SR_FF": {
+          const prev = node.outputs?.Q || 0;
+          let Q = prev;
+          if (node.prevClockVal === 0 && getIn("CLK") === 1) {
+            const s = getIn("S"), r = getIn("R");
+            if (s === 1 && r === 0) Q = 1;
+            else if (s === 0 && r === 1) Q = 0;
+          }
+          node.outputs = { Q, QB: Q === 1 ? 0 : 1 };
+          break;
+        }
+        case "ALU": {
+          const valA = (getIn("A1") * 2) + getIn("A0");
+          const valB = (getIn("B1") * 2) + getIn("B0");
+          const res = getIn("OP") === 0 ? (valA + valB) : (valA & valB);
+          node.outputs = { Y0: res & 1, Y1: (res >> 1) & 1, Y2: (res >> 2) & 1 };
+          break;
+        }
+        case "MUX":
+          node.state = getIn("SEL") === 1 ? getIn("D1") : getIn("D0");
+          break;
+        case "DEC": {
+          const val = (getIn("A") * 2) + getIn("B");
+          node.outputs = { Y0: val === 0 ? 1 : 0, Y1: val === 1 ? 1 : 0, Y2: val === 2 ? 1 : 0, Y3: val === 3 ? 1 : 0 };
+          break;
+        }
+      }
+      return node;
+    });
+  }
+  return solved;
+};
+
+function StudentCircuitSandbox({ circuitData }) {
+  const [nodes, setNodes] = useState([]);
+  const [wires, setWires] = useState([]);
+  const [simulating, setSimulating] = useState(true);
+
+  // Initialize data
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(circuitData);
+      if (parsed.nodes && parsed.wires) {
+        setNodes(solveLogic(parsed.nodes, parsed.wires));
+        setWires(parsed.wires);
+      }
+    } catch (e) {}
+  }, [circuitData]);
+
+  // Clock ticks
+  useEffect(() => {
+    let timer;
+    if (simulating) {
+      timer = setInterval(() => {
+        const now = Date.now();
+        setNodes(prev => {
+          let clockToggled = false;
+          const nextNodes = prev.map(n => {
+            if (n.type === "CLOCK") {
+              const state = Math.floor(now / 500) % 2;
+              if (n.state !== state) { clockToggled = true; return { ...n, state }; }
+            }
+            return n;
+          });
+          return clockToggled ? solveLogic(nextNodes, wires) : prev;
+        });
+      }, 100);
+    }
+    return () => clearInterval(timer);
+  }, [simulating, wires]);
+
+  const toggleSwitch = (id) => {
+    setNodes(prev => solveLogic(
+      prev.map(n => n.id === id ? { ...n, state: n.state === 1 ? 0 : 1 } : n),
+      wires
+    ));
+  };
+
+  const getWireRoute = (wire) => {
+    const fromNode = nodes.find(n => n.id === wire.fromNode);
+    const toNode = nodes.find(n => n.id === wire.toNode);
+    if (!fromNode || !toNode) return "";
+
+    const start = getPortCoords(fromNode, wire.fromPort, false);
+    const end = getPortCoords(toNode, wire.toPort, true);
+    
+    // Fall back to simple orthogonal path for compactness
+    const midX = (start.x + end.x) / 2;
+    return `M ${start.x} ${start.y} L ${midX} ${start.y} L ${midX} ${end.y} L ${end.x} ${end.y}`;
+  };
+
+  if (nodes.length === 0) return null;
+
+  // Render SSD segments helper
+  const renderSevenSegSegments = (node) => {
+    const val = node.state || 0;
+    const segs = {
+      0: [1,1,1,1,1,1,0], 1: [0,1,1,0,0,0,0], 2: [1,1,0,1,1,0,1], 3: [1,1,1,1,0,0,1],
+      4: [0,1,1,0,0,1,1], 5: [1,0,1,1,0,1,1], 6: [1,0,1,1,1,1,1], 7: [1,1,1,0,0,0,0],
+      8: [1,1,1,1,1,1,1], 9: [1,1,1,1,0,1,1], 10: [1,1,1,0,1,1,1], 11: [0,0,1,1,1,1,1],
+      12: [1,0,0,1,1,1,0], 13: [0,1,1,1,1,0,1], 14: [1,0,0,1,1,1,1], 15: [1,0,0,0,1,1,1]
+    };
+    const active = segs[val] || [0,0,0,0,0,0,0];
+    return (
+      <g transform="translate(25, 20)">
+        <rect x="5" y="0" width="20" height="4" rx="2" fill={active[0] ? "#ef4444" : "#334155"} />
+        <rect x="23" y="3" width="4" height="20" rx="2" fill={active[1] ? "#ef4444" : "#334155"} />
+        <rect x="23" y="25" width="4" height="20" rx="2" fill={active[2] ? "#ef4444" : "#334155"} />
+        <rect x="5" y="44" width="20" height="4" rx="2" fill={active[3] ? "#ef4444" : "#334155"} />
+        <rect x="2" y="25" width="4" height="20" rx="2" fill={active[4] ? "#ef4444" : "#334155"} />
+        <rect x="2" y="3" width="4" height="20" rx="2" fill={active[5] ? "#ef4444" : "#334155"} />
+        <rect x="5" y="22" width="20" height="4" rx="2" fill={active[6] ? "#ef4444" : "#334155"} />
+      </g>
+    );
+  };
+
+  // Find circuit bounding box to fit dynamically inside the card viewport
+  const nodeSizes = nodes.map(n => {
+    const size = getNodeSize(n) || { w: 80, h: 60 };
+    return {
+      minX: n.x,
+      minY: n.y,
+      maxX: n.x + size.w,
+      maxY: n.y + size.h
+    };
+  });
+
+  const minX = nodes.length > 0 ? Math.min(...nodeSizes.map(n => n.minX)) : 0;
+  const minY = nodes.length > 0 ? Math.min(...nodeSizes.map(n => n.minY)) : 0;
+  const maxX = nodes.length > 0 ? Math.max(...nodeSizes.map(n => n.maxX)) : 800;
+  const maxY = nodes.length > 0 ? Math.max(...nodeSizes.map(n => n.maxY)) : 400;
+
+  const padding = 45;
+  const viewBoxX = minX - padding;
+  const viewBoxY = minY - padding;
+  const viewBoxW = Math.max(maxX - minX + padding * 2, 100);
+  const viewBoxH = Math.max(maxY - minY + padding * 2, 100);
+
+  return (
+    <div style={{ margin: "16px 0", background: "#0b0f19", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "rgba(255,255,255,0.02)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+        <span style={{ fontSize: "11px", fontWeight: "600", color: "#10b981", display: "flex", alignItems: "center", gap: "6px" }}>
+          ⚡ Interactive Circuit Sandbox
+        </span>
+        <button
+          style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 8px", background: simulating ? "#10b981" : "rgba(255,255,255,0.08)", border: "none", color: "white", fontSize: "10px", fontWeight: "600", borderRadius: "4px", cursor: "pointer" }}
+          onClick={() => setSimulating(s => !s)}
+        >
+          {simulating ? <Pause size={10} /> : <Play size={10} />}
+          {simulating ? "Sim Active" : "Run Simulation"}
+        </button>
+      </div>
+
+      <div style={{ height: "300px", position: "relative" }}>
+        <svg 
+          viewBox={`${viewBoxX} ${viewBoxY} ${viewBoxW} ${viewBoxH}`} 
+          style={{ width: "100%", height: "100%", display: "block" }}
+        >
+          <style>{`
+            @keyframes pulse-dash {
+              to {
+                stroke-dashoffset: -32;
+              }
+            }
+          `}</style>
+          <defs>
+            <pattern id="card-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <circle cx="10" cy="10" r="0.8" fill="rgba(255,255,255,0.05)" />
+            </pattern>
+          </defs>
+          <rect x={viewBoxX} y={viewBoxY} width={viewBoxW} height={viewBoxH} fill="url(#card-grid)" />
+
+          <g>
+            {wires.map(wire => {
+              const src = nodes.find(n => n.id === wire.fromNode);
+              let active = 0;
+              if (src) {
+                active = src.type.includes("FF") || src.type === "HALF_ADDER" || src.type === "FULL_ADDER" || src.type === "COMPARATOR" || src.type === "ALU" || src.type === "DEC"
+                  ? src.outputs?.[wire.fromPort] || 0
+                  : src.state || 0;
+              }
+              const route = getWireRoute(wire);
+              return (
+                <g key={wire.id}>
+                  <path d={route} fill="none" stroke={active === 1 ? "#10b981" : "#1e293b"} strokeWidth={active === 1 ? "3" : "2"} style={{ transition: "stroke 0.2s", filter: active === 1 ? "drop-shadow(0 0 4px rgba(16, 185, 129, 0.6))" : "" }} />
+                  {simulating && active === 1 && (
+                    <path
+                      d={route}
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      strokeDasharray="8 24"
+                      style={{
+                        animation: "pulse-dash 0.75s infinite linear",
+                        filter: "drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 3px #10b981)",
+                        pointerEvents: "none"
+                      }}
+                    />
+                  )}
+                </g>
+              );
+            })}
+
+            {nodes.map(node => {
+              const { w, h } = getNodeSize(node);
+              const color = node.color || "#3b82f6";
+              const isSwitch = node.type === "SWITCH";
+
+              const inputs = [];
+              if (node.type === "NOT" || node.type === "LED" || node.type === "BULB") inputs.push("IN");
+              else if (node.type === "SEVENSEG") inputs.push("IN_A", "IN_B", "IN_C", "IN_D");
+              else if (node.type === "HALF_ADDER" || node.type === "COMPARATOR") inputs.push("A", "B");
+              else if (node.type === "FULL_ADDER") inputs.push("A", "B", "CIN");
+              else if (node.type === "D_FF") inputs.push("D", "CLK");
+              else if (node.type === "JK_FF" || node.type === "SR_FF") inputs.push("J", "S", "CLK", "K", "R");
+              else if (node.type === "ALU") inputs.push("A0", "A1", "B0", "B1", "OP");
+              else if (node.type === "MUX") inputs.push("D0", "D1", "SEL");
+              else if (node.type === "DEC") inputs.push("A", "B");
+              else if (!["SWITCH", "CLOCK", "CONST0", "CONST1"].includes(node.type)) {
+                const count = node.inputsCount || 2;
+                for (let i = 0; i < count; i++) inputs.push(`IN_${i}`);
+              }
+
+              const outputs = [];
+              if (node.type === "SR_FF" || node.type === "JK_FF" || node.type === "D_FF") outputs.push("Q", "QB");
+              else if (node.type === "HALF_ADDER" || node.type === "FULL_ADDER") outputs.push("SUM", "CARRY");
+              else if (node.type === "COMPARATOR") outputs.push("GT", "EQ", "LT");
+              else if (node.type === "ALU") outputs.push("Y0", "Y1", "Y2");
+              else if (node.type === "DEC") outputs.push("Y0", "Y1", "Y2", "Y3");
+              else if (!["LED", "BULB", "SEVENSEG"].includes(node.type)) outputs.push("OUT");
+
+              return (
+                <g key={node.id} transform={`translate(${node.x}, ${node.y}) rotate(${node.rotation}, ${w/2}, ${h/2})`}>
+                  {(() => {
+                    const fill = "#1e293b";
+                    const stroke = "#334155";
+                    const strokeWidth = "1.5";
+                    switch (node.type) {
+                      case "AND":
+                        return (
+                          <>
+                            <path d={`M 0 0 L ${w/2} 0 A ${w/2} ${h/2} 0 0 1 ${w/2} ${h} L 0 ${h} Z`} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+                            <rect width="4" height={h} fill={color} rx="1" />
+                          </>
+                        );
+                      case "NAND":
+                        return (
+                          <>
+                            <path d={`M 0 0 L ${(w - 8)/2} 0 A ${(w - 8)/2} ${h/2} 0 0 1 ${(w - 8)/2} ${h} L 0 ${h} Z`} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+                            <circle cx={w - 4} cy={h/2} r="4" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+                            <rect width="4" height={h} fill={color} rx="1" />
+                          </>
+                        );
+                      case "OR":
+                        return (
+                          <>
+                            <path d={`M 0 0 Q ${w/4} ${h/2} 0 ${h} Q ${w*0.6} ${h} ${w} ${h/2} Q ${w*0.6} 0 0 0 Z`} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+                            <path d={`M 0 0 Q ${w/4} ${h/2} 0 ${h}`} fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" />
+                          </>
+                        );
+                      case "NOR":
+                        return (
+                          <>
+                            <path d={`M 0 0 Q ${w/4} ${h/2} 0 ${h} Q ${w*0.55} ${h} ${w - 8} ${h/2} Q ${w*0.55} 0 0 0 Z`} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+                            <circle cx={w - 4} cy={h/2} r="4" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+                            <path d={`M 0 0 Q ${w/4} ${h/2} 0 ${h}`} fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" />
+                          </>
+                        );
+                      case "XOR":
+                        return (
+                          <>
+                            <path d={`M -6 0 Q ${w/4 - 6} ${h/2} -6 ${h}`} fill="none" stroke={stroke} strokeWidth={strokeWidth} />
+                            <path d={`M 0 0 Q ${w/4} ${h/2} 0 ${h} Q ${w*0.6} ${h} ${w} ${h/2} Q ${w*0.6} 0 0 0 Z`} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+                            <path d={`M -6 0 Q ${w/4 - 6} ${h/2} -6 ${h}`} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" />
+                          </>
+                        );
+                      case "XNOR":
+                        return (
+                          <>
+                            <path d={`M -6 0 Q ${w/4 - 6} ${h/2} -6 ${h}`} fill="none" stroke={stroke} strokeWidth={strokeWidth} />
+                            <path d={`M 0 0 Q ${w/4} ${h/2} 0 ${h} Q ${w*0.55} ${h} ${w - 8} ${h/2} Q ${w*0.55} 0 0 0 Z`} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+                            <circle cx={w - 4} cy={h/2} r="4" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+                            <path d={`M -6 0 Q ${w/4 - 6} ${h/2} -6 ${h}`} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" />
+                          </>
+                        );
+                      case "NOT":
+                        return (
+                          <>
+                            <path d={`M 0 0 L ${w - 8} ${h/2} L 0 ${h} Z`} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+                            <circle cx={w - 4} cy={h/2} r="4" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+                            <rect width="4" height={h} fill={color} rx="1" />
+                          </>
+                        );
+                      default:
+                        return (
+                          <>
+                            <rect fill={fill} stroke={stroke} strokeWidth={strokeWidth} width={w} height={h} rx="4" />
+                            <rect width="4" height={h} fill={color} rx="1" />
+                          </>
+                        );
+                    }
+                  })()}
+                  
+                  <text x="8" y="14" fontSize="8" fontWeight="bold" fill="#64748b">{node.type}</text>
+                  <text x={w/2} y={node.type === "SEVENSEG" || node.type === "BULB" || node.type === "LED" ? h-6 : h/2+4} fontSize="9" fontWeight="600" fill="#f8fafc" textAnchor="middle">{node.label || node.type}</text>
+
+                  {isSwitch && (
+                    <g transform="translate(25, 20)" style={{ cursor: "pointer" }} onClick={() => toggleSwitch(node.id)}>
+                      <rect width="30" height="14" rx="7" fill={node.state === 1 ? "#10b981" : "#475569"} />
+                      <circle cx={node.state === 1 ? 23 : 7} cy="7" r="5" fill="white" style={{ transition: "all 0.15s" }} />
+                    </g>
+                  )}
+
+                  {node.type === "LED" && (
+                    <circle cx={w/2} cy={h/2-4} r="12" fill={node.state === 1 ? "#10b981" : "#0f172a"} stroke={node.state === 1 ? "#34d399" : "#475569"} strokeWidth="1.5" />
+                  )}
+
+                  {node.type === "BULB" && (
+                    <path d="M 30,12 C 23,12 18,17 18,24 C 18,29 21,33 24,36 L 24,42 L 36,42 L 36,36 C 39,33 42,29 42,24 C 42,17 37,12 30,12 Z" fill={node.state === 1 ? "#fbbf24" : "#0f172a"} stroke={node.state === 1 ? "#fbbf24" : "#475569"} strokeWidth="1.5" transform="scale(0.8) translate(7, 4)" />
+                  )}
+
+                  {node.type === "SEVENSEG" && renderSevenSegSegments(node)}
+
+                  {/* Ports */}
+                  {inputs.map(port => {
+                    const pos = getPortCoords(node, port, true);
+                    const isHigh = node.inputValues?.[port] === 1;
+                    return (
+                      <circle key={port} cx={pos.x - node.x} cy={pos.y - node.y} r="3" fill={isHigh ? "#10b981" : "#475569"} stroke="#0b0f19" strokeWidth="0.5" />
+                    );
+                  })}
+                  {outputs.map(port => {
+                    const pos = getPortCoords(node, port, false);
+                    const isHigh = (node.type.includes("FF") || node.type === "HALF_ADDER" || node.type === "FULL_ADDER" || node.type === "COMPARATOR" || node.type === "ALU" || node.type === "DEC" ? node.outputs?.[port] : node.state) === 1;
+                    return (
+                      <circle key={port} cx={pos.x - node.x} cy={pos.y - node.y} r="3" fill={isHigh ? "#10b981" : "#475569"} stroke="#0b0f19" strokeWidth="0.5" />
+                    );
+                  })}
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 function QuestionCard({
   questionData,
   questionNumber,
@@ -736,6 +1311,10 @@ function QuestionCard({
       <h3>Question {questionNumber} / {totalQuestions}</h3>
 
       {renderQuestionText(questionData.question)}
+
+      {questionData.circuitData && (
+        <StudentCircuitSandbox circuitData={questionData.circuitData} />
+      )}
 
       {questionData.options.map((option, index) => {
         let backgroundColor = "#f4f4f4"

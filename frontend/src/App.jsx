@@ -8,6 +8,7 @@ import Layout from "./components/Layout"
 import Login from "./pages/Login"
 import Signup from "./pages/Signup";
 import AddQuestions from "./pages/AddQuestions";
+import AddQuestionAlpha from "./pages/AddQuestionAlpha";
 
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
         <Route path="/quiz" element={<Quiz />} />
         <Route path="/result" element={<Result />} />
         <Route path="/add-questions" element={<AddQuestions />} />
+        <Route path="/add-question-alpha" element={<AddQuestionAlpha />} />
       </Routes>
     </Layout>
   )

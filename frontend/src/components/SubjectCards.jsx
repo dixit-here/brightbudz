@@ -10,6 +10,7 @@ const FALLBACK_SUBJECTS = [
   { subjectId: 'chemistry', title: 'Chemistry', iconName: 'FlaskConical', color: '#f59e0b', description: 'Delve into the composition, structure, and properties of matter.' },
   { subjectId: 'social-science', title: 'Social Science', iconName: 'Globe', color: '#10b981', description: 'Understand human society, history, geography, and political structures.' },
   { subjectId: 'biology', title: 'Biology', iconName: 'Dna', color: '#f43f5e', description: 'Dive into the science of life, from microscopic cells to complex ecosystems.' },
+  { subjectId: 'electronics', title: 'Electronics', iconName: 'Cpu', color: '#10b981', description: 'Design and simulate digital logic circuits interactively.' },
 ];
 
 const SubjectCards = () => {
@@ -28,7 +29,9 @@ const SubjectCards = () => {
         clearTimeout(timeoutId);
         const list = Array.isArray(data) && data.length > 0 ? data : FALLBACK_SUBJECTS;
         setSubjects(list);
-        setActiveId(list[0].subjectId);
+        if (list.length > 0) {
+          setActiveId(list[0].subjectId);
+        }
         setLoading(false);
       })
       .catch(error => {
@@ -83,21 +86,45 @@ const SubjectCards = () => {
                 <h3 className="card-title">{subject.title}</h3>
                 <p className="card-description">{subject.description}</p>
                 <div className="class-links-section">
-                  <span className="class-links-label">Select Class:</span>
+                  <span className="class-links-label">
+                    {subject.subjectId === 'electronics' ? "Select Gate:" : "Select Class:"}
+                  </span>
                   <div className="class-links-grid">
-                    {[...Array(10)].map((_, i) => (
-                      <button
-                        key={i + 1}
-                        className="class-link-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/practice?subject=${encodeURIComponent(subject.title)}&class=${i + 1}`);
-                        }}
-                        style={{ color: subject.color }}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
+                    {subject.subjectId === 'electronics' ? (
+                      ["AND Gate", "OR Gate", "NOT Gate", "NAND Gate", "NOR Gate", "XOR Gate", "XNOR Gate"].map((gate) => (
+                        <button
+                          key={gate}
+                          className="class-link-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/practice?subject=${encodeURIComponent(subject.title)}&chapter=${encodeURIComponent(gate)}`);
+                          }}
+                          style={{
+                            color: subject.color,
+                            width: "auto",
+                            padding: "0 12px",
+                            fontSize: "0.8rem",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          {gate.replace(" Gate", "")}
+                        </button>
+                      ))
+                    ) : (
+                      [...Array(10)].map((_, i) => (
+                        <button
+                          key={i + 1}
+                          className="class-link-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/practice?subject=${encodeURIComponent(subject.title)}&class=${i + 1}`);
+                          }}
+                          style={{ color: subject.color }}
+                        >
+                          {i + 1}
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>

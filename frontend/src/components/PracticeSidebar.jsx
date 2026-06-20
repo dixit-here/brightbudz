@@ -70,6 +70,16 @@ function PracticeSidebar({ currentSubject, currentClass, currentChapter }) {
       });
   };
 
+  // Load classless chapters when subject is expanded
+  useEffect(() => {
+    if (expandedSubject && subjects.length > 0) {
+      const subject = subjects.find(s => s.subjectId === expandedSubject);
+      if (subject) {
+        fetchChapters(subject.title, "", subject.subjectId);
+      }
+    }
+  }, [expandedSubject, subjects]);
+
   const toggleSubject = (subject) => {
     setExpandedSubject(prev => prev === subject.subjectId ? null : subject.subjectId);
   };
@@ -131,62 +141,87 @@ function PracticeSidebar({ currentSubject, currentClass, currentChapter }) {
                     </span>
                   </button>
 
-                  {/* Class rows */}
+                  {/* Class rows or direct chapters */}
                   <div className={`sidebar-classes${isSubjectExpanded ? ' expanded' : ''}`}
-                    style={{ maxHeight: isSubjectExpanded ? `${10 * 120}px` : '0' }}>
-                    {[...Array(10)].map((_, i) => {
-                      const classNum = String(i + 1);
-                      const classKey = `${subject.subjectId}-${classNum}`;
-                      const isClassActive = isSubjectActive && currentClass === classNum;
-                      const isClassExpanded = expandedClass === classKey;
-                      const classChapters = chapters[classKey] || [];
-                      const isLoadingC = loadingChapters[classKey];
+                    style={{ maxHeight: isSubjectExpanded ? '2000px' : '0' }}>
+                    {loadingChapters[`${subject.subjectId}-`] ? (
+                      <div className="chapter-loading" style={{ padding: '8px 24px' }}>
+                        <Icons.Loader2 size={12} className="spin-icon" />
+                        Loading…
+                      </div>
+                    ) : (chapters[`${subject.subjectId}-`] && chapters[`${subject.subjectId}-`].length > 0) ? (
+                      /* Classless chapters render directly */
+                      <div className="sidebar-chapter-list expanded" style={{ display: 'block', paddingLeft: '16px', maxHeight: 'none', opacity: 1 }}>
+                        {chapters[`${subject.subjectId}-`].map((ch, idx) => {
+                          const isChapterActive = isSubjectActive && currentChapter === ch;
+                          return (
+                            <button
+                              key={idx}
+                              className={`sidebar-chapter-btn${isChapterActive ? ' active' : ''}`}
+                              style={isChapterActive ? { '--subject-color': subject.color } : {}}
+                              onClick={() => navigate(`/practice?subject=${encodeURIComponent(subject.title)}&chapter=${encodeURIComponent(ch)}`)}
+                              title={ch}
+                            >
+                              <Icons.FileText size={11} className="chapter-icon" />
+                              <span className="chapter-name">{ch}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* Standard class list */
+                      [...Array(10)].map((_, i) => {
+                        const classNum = String(i + 1);
+                        const classKey = `${subject.subjectId}-${classNum}`;
+                        const isClassActive = isSubjectActive && currentClass === classNum;
+                        const isClassExpanded = expandedClass === classKey;
+                        const classChapters = chapters[classKey] || [];
+                        const isLoadingC = loadingChapters[classKey];
 
-                      return (
-                        <div key={classNum} className="sidebar-class-group">
-                          {/* Class button */}
-                          <button
-                            className={`sidebar-class-btn${isClassActive ? ' active' : ''}`}
-                            style={isClassActive ? { '--subject-color': subject.color } : {}}
-                            onClick={() => toggleClass(subject, classNum)}
-                          >
-                            <span className="class-dot" />
-                            <span>Class {classNum}</span>
-                            <span className={`sidebar-chevron-sm${isClassExpanded ? ' open' : ''}`}>
-                              <Icons.ChevronDown size={11} />
-                            </span>
-                          </button>
+                        return (
+                          <div key={classNum} className="sidebar-class-group">
+                            <button
+                              className={`sidebar-class-btn${isClassActive ? ' active' : ''}`}
+                              style={isClassActive ? { '--subject-color': subject.color } : {}}
+                              onClick={() => toggleClass(subject, classNum)}
+                            >
+                              <span className="class-dot" />
+                              <span>Class {classNum}</span>
+                              <span className={`sidebar-chevron-sm${isClassExpanded ? ' open' : ''}`}>
+                                <Icons.ChevronDown size={11} />
+                              </span>
+                            </button>
 
-                          {/* Chapter list */}
-                          <div className={`sidebar-chapter-list${isClassExpanded ? ' expanded' : ''}`}>
-                            {isLoadingC ? (
-                              <div className="chapter-loading">
-                                <Icons.Loader2 size={12} className="spin-icon" />
-                                Loading…
-                              </div>
-                            ) : classChapters.length === 0 ? (
-                              <div className="chapter-empty">No chapters</div>
-                            ) : (
-                              classChapters.map((ch, idx) => {
-                                const isChapterActive = isClassActive && currentChapter === ch;
-                                return (
-                                  <button
-                                    key={idx}
-                                    className={`sidebar-chapter-btn${isChapterActive ? ' active' : ''}`}
-                                    style={isChapterActive ? { '--subject-color': subject.color } : {}}
-                                    onClick={() => goToChapter(subject.title, classNum, ch)}
-                                    title={ch}
-                                  >
-                                    <Icons.FileText size={11} className="chapter-icon" />
-                                    <span className="chapter-name">{ch}</span>
-                                  </button>
-                                );
-                              })
-                            )}
+                            <div className={`sidebar-chapter-list${isClassExpanded ? ' expanded' : ''}`}>
+                              {isLoadingC ? (
+                                <div className="chapter-loading">
+                                  <Icons.Loader2 size={12} className="spin-icon" />
+                                  Loading…
+                                </div>
+                              ) : classChapters.length === 0 ? (
+                                <div className="chapter-empty">No chapters</div>
+                              ) : (
+                                classChapters.map((ch, idx) => {
+                                  const isChapterActive = isClassActive && currentChapter === ch;
+                                  return (
+                                    <button
+                                      key={idx}
+                                      className={`sidebar-chapter-btn${isChapterActive ? ' active' : ''}`}
+                                      style={isChapterActive ? { '--subject-color': subject.color } : {}}
+                                      onClick={() => goToChapter(subject.title, classNum, ch)}
+                                      title={ch}
+                                    >
+                                      <Icons.FileText size={11} className="chapter-icon" />
+                                      <span className="chapter-name">{ch}</span>
+                                    </button>
+                                  );
+                                })
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               );

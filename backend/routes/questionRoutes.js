@@ -10,12 +10,14 @@ const {
   getQuizQuestions,
   getAdminQuestions,
   updateQuestion,
-  deleteQuestion
+  deleteQuestion,
+  getSingleQuestion
 } = require("../controllers/questionController");
 
 // 🔐 Admin only
 router.post("/add",           verifyToken, isAdmin, addQuestion);
 router.get("/admin",          verifyToken, isAdmin, getAdminQuestions);
+router.get("/edit/:id",       verifyToken, isAdmin, getSingleQuestion);
 router.put("/:id",            verifyToken, isAdmin, updateQuestion);
 router.delete("/:id",         verifyToken, isAdmin, deleteQuestion);
 

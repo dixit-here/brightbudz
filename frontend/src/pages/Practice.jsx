@@ -48,9 +48,10 @@ function Practice() {
 
   // When subject+class chosen but no chapter → load chapter list
   useEffect(() => {
-    if (subjectFilter && gradeFilter && !chapterFilter) {
+    if (subjectFilter && !chapterFilter) {
       setLoadingChapters(true)
-      fetch(`${API_BASE}/api/subjects/chapters?subject=${encodeURIComponent(subjectFilter)}&grade=${gradeFilter}`)
+      const gradeVal = gradeFilter || ""
+      fetch(`${API_BASE}/api/subjects/chapters?subject=${encodeURIComponent(subjectFilter)}&grade=${gradeVal}`)
         .then(r => r.json())
         .then(data => {
           setChapters(Array.isArray(data) ? data : [])
@@ -108,7 +109,11 @@ function Practice() {
   }
 
   const goToChapter = (ch) => {
-    navigate(`/practice?subject=${encodeURIComponent(subjectFilter)}&class=${gradeFilter}&chapter=${encodeURIComponent(ch)}`)
+    const params = new URLSearchParams()
+    if (subjectFilter) params.set('subject', subjectFilter)
+    if (gradeFilter)   params.set('class', gradeFilter)
+    params.set('chapter', ch)
+    navigate(`/practice?${params.toString()}`)
   }
 
   return (
@@ -135,7 +140,12 @@ function Practice() {
                 <span className="breadcrumb-sep">›</span>
                 <button
                   className="breadcrumb-btn"
-                  onClick={() => navigate(`/practice?subject=${encodeURIComponent(subjectFilter)}&class=${gradeFilter}`)}
+                  onClick={() => {
+                    const params = new URLSearchParams()
+                    params.set('subject', subjectFilter)
+                    if (gradeFilter) params.set('class', gradeFilter)
+                    navigate(`/practice?${params.toString()}`)
+                  }}
                 >
                   {subjectFilter}
                 </button>
@@ -183,23 +193,25 @@ function Practice() {
         {/* ── Content ── */}
         <div className="practice-content">
 
-          {/* No subject selected */}
-          {!subjectFilter && (
+          {/* Empty State: No subject selected, or subject selected but no class and no chapters loaded */}
+          {(!subjectFilter || (subjectFilter && !gradeFilter && !chapterFilter && chapters.length === 0 && !loadingChapters)) && (
             <div className="practice-empty">
               <span className="empty-icon">📚</span>
               <h3>Choose a Subject</h3>
-              <p>Select a subject from the left sidebar to get started.</p>
+              <p>Select a subject and class from the left sidebar to get started.</p>
               <button className="go-home-btn" onClick={() => navigate('/')}>← Go to Home</button>
             </div>
           )}
 
-          {/* Subject + Class chosen, no chapter → Chapter Picker */}
-          {subjectFilter && gradeFilter && !chapterFilter && (
+          {/* Subject chosen, no chapter, and we have chapters loaded → Chapter Picker */}
+          {subjectFilter && !chapterFilter && (gradeFilter || chapters.length > 0) && (
             <div className="chapter-picker">
               <div className="chapter-picker-header">
                 <span className="chapter-picker-emoji">📖</span>
                 <div>
-                  <h2 className="chapter-picker-title">{subjectFilter} — Class {gradeFilter}</h2>
+                  <h2 className="chapter-picker-title">
+                    {subjectFilter}{gradeFilter ? ` — Class ${gradeFilter}` : ''}
+                  </h2>
                   <p className="chapter-picker-sub">Choose a chapter to start practising</p>
                 </div>
               </div>
@@ -213,7 +225,7 @@ function Practice() {
                 <div className="practice-empty">
                   <span className="empty-icon">📭</span>
                   <h3>No chapters available</h3>
-                  <p>Chapters for {subjectFilter} Class {gradeFilter} are not listed yet.</p>
+                  <p>Chapters for {subjectFilter} are not listed yet.</p>
                 </div>
               ) : (
                 <div className="chapter-grid">
@@ -248,7 +260,12 @@ function Practice() {
                   <p>No questions found for <strong>{chapterFilter}</strong>.</p>
                   <button
                     className="go-home-btn"
-                    onClick={() => navigate(`/practice?subject=${encodeURIComponent(subjectFilter)}&class=${gradeFilter}`)}
+                    onClick={() => {
+                      const params = new URLSearchParams()
+                      params.set('subject', subjectFilter)
+                      if (gradeFilter) params.set('class', gradeFilter)
+                      navigate(`/practice?${params.toString()}`)
+                    }}
                   >
                     ← Back to Chapters
                   </button>
@@ -262,7 +279,8 @@ function Practice() {
                         questionData={{
                           question: q.question,
                           options: q.options,
-                          correctAnswerIndex: answer ? answer.correctAnswerIndex : null
+                          correctAnswerIndex: answer ? answer.correctAnswerIndex : null,
+                          circuitData: q.circuitData
                         }}
                         questionNumber={index + 1}
                         totalQuestions={questions.length}

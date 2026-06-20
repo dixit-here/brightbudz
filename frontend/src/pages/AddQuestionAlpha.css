@@ -1,0 +1,573 @@
+/* AddQuestionAlpha.css - Figma-style Editor Stylesheet */
+
+/* Enforce dark, premium color system for editor canvas */
+.alpha-editor-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background-color: #0f172a;
+  color: #f8fafc;
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+}
+
+/* Glassmorphism sidebar panels */
+.alpha-sidebar {
+  width: 280px;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.25);
+  overflow-y: auto;
+}
+
+.alpha-properties-panel {
+  width: 320px;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.25);
+  overflow-y: auto;
+}
+
+/* Scrollbar styles for dark panels */
+.alpha-sidebar::-webkit-scrollbar,
+.alpha-properties-panel::-webkit-scrollbar,
+.alpha-scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+.alpha-sidebar::-webkit-scrollbar-thumb,
+.alpha-properties-panel::-webkit-scrollbar-thumb,
+.alpha-scrollable::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+.alpha-sidebar::-webkit-scrollbar-thumb:hover,
+.alpha-properties-panel::-webkit-scrollbar-thumb:hover,
+.alpha-scrollable::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Top floating toolbar */
+.alpha-top-bar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  height: 48px;
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Bottom floating status bar */
+.alpha-status-bar {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  height: 36px;
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* Search bar styling */
+.alpha-search-wrapper {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.alpha-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+.alpha-search-input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* Accordion sections */
+.alpha-accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background 0.2s;
+}
+.alpha-accordion-header:hover {
+  background: rgba(255, 255, 255, 0.02);
+  color: #94a3b8;
+}
+
+/* Drag list grid */
+.alpha-drag-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 12px;
+}
+.alpha-drag-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  cursor: grab;
+  transition: all 0.2s ease;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  color: #cbd5e1;
+}
+.alpha-drag-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: white;
+  transform: translateY(-2px);
+}
+.alpha-drag-item:active {
+  cursor: grabbing;
+}
+.alpha-drag-item svg {
+  margin-bottom: 6px;
+  color: #818cf8;
+}
+
+/* Canvas Area */
+.alpha-canvas-wrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  outline: none;
+  cursor: grab;
+}
+.alpha-canvas-wrapper:active {
+  cursor: grabbing;
+}
+.alpha-canvas-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Node/Gate elements */
+.alpha-node {
+  cursor: move;
+  transition: filter 0.15s ease;
+}
+.alpha-node.selected {
+  filter: drop-shadow(0 0 6px rgba(99, 102, 241, 0.6));
+}
+.alpha-node-bg {
+  fill: #1e293b;
+  stroke: #475569;
+  stroke-width: 1.5;
+  transition: fill 0.2s, stroke 0.2s;
+}
+.alpha-node.selected .alpha-node-bg {
+  stroke: #6366f1;
+  stroke-width: 2;
+  fill: #1e1b4b;
+}
+
+/* Ports */
+.alpha-port {
+  cursor: crosshair;
+  transition: r 0.15s, fill 0.15s;
+}
+.alpha-port:hover {
+  r: 6;
+  fill: #10b981 !important;
+}
+
+/* Wires & Glowing signals */
+.alpha-wire-bg {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  cursor: pointer;
+}
+.alpha-wire {
+  fill: none;
+  stroke: #475569;
+  stroke-dasharray: none;
+  transition: stroke 0.25s, stroke-width 0.15s;
+}
+.alpha-wire.selected {
+  stroke: #6366f1 !important;
+  stroke-width: 3.5 !important;
+  filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.6));
+}
+.alpha-wire.high {
+  stroke: #10b981;
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.8));
+}
+.alpha-wire.low {
+  stroke: #3b82f6;
+  stroke-width: 2.5px;
+  filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.3));
+}
+.alpha-wire.pulse-flow {
+  stroke: #ffffff;
+  stroke-width: 4.5px;
+  stroke-linecap: round;
+  stroke-dasharray: 8 24;
+  filter: drop-shadow(0 0 8px #ffffff) drop-shadow(0 0 4px #10b981);
+  animation: pulse-dash 0.75s infinite linear;
+  pointer-events: none;
+}
+
+/* Pulse dash animation */
+@keyframes pulse-dash {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+/* Interactive elements in simulation */
+.sim-interactive {
+  cursor: pointer;
+}
+.sim-interactive:hover {
+  filter: brightness(1.2);
+}
+
+/* Right Property Panels & Inputs */
+.alpha-properties-section {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.alpha-properties-section h3 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+.alpha-field-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.alpha-field-col {
+  flex: 1;
+}
+.alpha-field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+.alpha-property-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: white;
+  font-size: 13px;
+  outline: none;
+}
+.alpha-property-input:focus {
+  border-color: #6366f1;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.alpha-color-pill {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.alpha-color-pill:hover {
+  transform: scale(1.15);
+}
+.alpha-color-pill.active {
+  border-color: white;
+  transform: scale(1.1);
+}
+
+/* Toolbar Buttons */
+.alpha-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.alpha-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+.alpha-tool-btn:active {
+  transform: scale(0.95);
+}
+.alpha-tool-btn.active {
+  background: #6366f1;
+  color: white;
+}
+.alpha-tool-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 8px;
+}
+
+/* Action button (e.g. Save, Simulate, Preview) */
+.alpha-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+.alpha-action-btn.primary {
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: white;
+}
+.alpha-action-btn.primary:hover {
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+  transform: translateY(-1px);
+}
+.alpha-action-btn.success {
+  background: #10b981;
+  color: white;
+}
+.alpha-action-btn.success:hover {
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+.alpha-action-btn.secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.alpha-action-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
+/* Box selection rectangle */
+.alpha-selection-box {
+  fill: rgba(99, 102, 241, 0.08);
+  stroke: rgba(99, 102, 241, 0.6);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+/* Connection port guidance helper line */
+.alpha-temp-wire {
+  fill: none;
+  stroke: #10b981;
+  stroke-width: 2.5;
+  stroke-dasharray: 4 4;
+}
+
+/* Tabs inside Sidebar */
+.alpha-sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0,0,0,0.15);
+}
+.alpha-sidebar-tab {
+  flex: 1;
+  padding: 10px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.alpha-sidebar-tab.active {
+  color: #818cf8;
+  border-bottom-color: #6366f1;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Layers list items */
+.alpha-layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #cbd5e1;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.02);
+  transition: all 0.15s;
+}
+.alpha-layer-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: white;
+}
+.alpha-layer-item.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+/* Simulation Controls Panel Overlay */
+.alpha-sim-panel {
+  position: absolute;
+  top: 80px;
+  left: 16px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 15;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+/* Student View Panel */
+.student-preview-pane {
+  flex: 1;
+  display: flex;
+  background: #0f172a;
+  height: 100%;
+}
+
+.student-question-card {
+  width: 380px;
+  height: 100%;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
+  overflow-y: auto;
+}
+
+.student-canvas-pane {
+  flex: 1;
+  position: relative;
+  background: #090d16;
+}
+
+.student-option-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #cbd5e1;
+  text-align: left;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.student-option-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.student-option-btn.selected {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+.student-option-btn.correct {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: #10b981 !important;
+  color: #6ee7b7 !important;
+}
+.student-option-btn.wrong {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: #ef4444 !important;
+  color: #fca5a5 !important;
+}
+
+/* Toast Message */
+.alpha-toast {
+  position: absolute;
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #6366f1;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+  z-index: 100;
+  animation: fade-in-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
